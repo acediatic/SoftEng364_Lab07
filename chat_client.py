@@ -11,34 +11,39 @@ SERVER_HOST = 'localhost'
 
 stop_thread = False
 
+
 def get_and_send(client):
     while not stop_thread:
         data = sys.stdin.readline().strip()
         if data:
             send(client.sock, data)
+            sys.stdout.write(client.prompt)
+            sys.stdout.flush()
+
 
 class ChatClient():
     """ A command line chat client using select """
+
     def __init__(self, name, port, host=SERVER_HOST):
         self.name = name
         self.connected = False
         self.host = host
         self.port = port
-        
+
         # Initial prompt
         self.prompt = f'[{name}@{socket.gethostname()}]> '
-        
+
         # Connect to server at port
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect((host, self.port))
             print(f'Now connected to chat server@ port {self.port}')
             self.connected = True
-            
+
             # Send my name...
             send(self.sock, 'NAME: ' + self.name)
             data = receive(self.sock)
-            
+
             # Contains client address, set it
             addr = data.split('CLIENT: ')[1]
             self.prompt = '[' + '@'.join((self.name, addr)) + ']> '
@@ -77,6 +82,10 @@ class ChatClient():
                             self.connected = False
                             break
                         else:
+                            if type(data) == list:
+                                # only one possible list value here, so can be relatively naive and assume it's always a list of clients
+                                data = receieve_list_clients(data)
+
                             sys.stdout.write(data + '\n')
                             sys.stdout.flush()
 
